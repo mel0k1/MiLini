@@ -1,0 +1,6 @@
+# гостевой тест XBPS: install из /repo -> запуск установленных бинарников
+name=xbpstest
+exec=/sbin/xbpstest
+type=service
+stop=term
+order=89

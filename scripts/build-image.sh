@@ -20,6 +20,9 @@ sh "$MILIN/tools/mkinitramfs.sh"
 
 # оверлей дистрибутива (identity: /etc/milini-release, /etc/motd)
 cp -r rootfs/. "$MILIN/build/rootfs/"
+
+# гостевой XBPS-стенд: утилиты + локальный репозиторий + раннер теста
+sh scripts/mk-guest.sh
 ( cd "$MILIN/build/rootfs" && find . | cpio -o -H newc --quiet | gzip -9 ) \
     > build/milini-initramfs.img
 cp "$MILIN/build/bzImage" build/bzImage

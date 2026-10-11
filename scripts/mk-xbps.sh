@@ -69,9 +69,10 @@ EOF
     "$TMP/m") > /dev/null
 
 # --- репозиторий ---
-"$XINDEX" -a "$REPO" "$REPO/mlin-kernel-$REV.$ARCH.xbps" \
-    "$REPO/mlin-userspace-$REV.$ARCH.xbps" \
-    "$REPO/milini-$REV.$ARCH.xbps"
+# репо-каталог xbps-rindex выводит из каталога пакетов; repodata ложится рядом
+"$XINDEX" -a "$REPO"/mlin-kernel-$REV.$ARCH.xbps \
+    "$REPO"/mlin-userspace-$REV.$ARCH.xbps \
+    "$REPO"/milini-$REV.$ARCH.xbps
 
 rm -rf "$TMP"
 echo "mk-xbps: репозиторий готов"

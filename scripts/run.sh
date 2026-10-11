@@ -1,5 +1,5 @@
 #!/bin/sh
-# бут-тест дистрибутива: QEMU, гейт здоровья системы MiLin ("M9 OK")
+# бут-тест дистрибутива: QEMU, гейты M11 (фасад amdgpu) + MILINI XBPS
 set -e
 cd "$(dirname "$0")/.."
 mkdir -p build
@@ -21,8 +21,8 @@ done
     -device pci-testdev \
     -kernel build/bzImage -initrd build/milini-initramfs.img \
     -append "console=ttyS0 panic=-1" < /dev/null > build/boot.log
-if grep -q "M9 OK" build/boot.log; then
-    echo "MiLini BOOT OK"
+if grep -q "M11 OK" build/boot.log && grep -q "MILINI XBPS OK" build/boot.log; then
+    echo "MiLini BOOT OK (domena M11 + XBPS install/run)"
     exit 0
 fi
 echo "MiLini BOOT FAILED — смотри build/boot.log"
