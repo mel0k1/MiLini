@@ -18,6 +18,7 @@ scripts/fetch-milin.sh  клон MiLin на закреплённый комми�
 scripts/build-image.sh  ядро + userspace + оверлей -> образ
 scripts/run.sh          бут-тест в QEMU (гейт здоровья системы)
 scripts/mk-xbps.sh      xbps-репозиторий пакетов (менеджер XBPS, Void Linux)
+scripts/void-pkgs.sh    пакеты ПРЯМО из репозитория Void Linux -> build/sysroot
 rootfs/etc/             identity дистрибутива внутри образа (release, motd)
 ```
 
@@ -71,13 +72,48 @@ Linux: `scripts/mk-xbps.sh` builds `build/repo/` with three packages —
 Static xbps binaries are downloaded automatically; on any host with XBPS
 the repository attaches as `--repository=file://.../build/repo`.
 
+## Пакеты прямо из репозитория Void / Packages straight from the Void repository
+
+**RU.** `scripts/void-pkgs.sh` скачивает пакеты **напрямую из репозитория
+Void Linux** (`repo-default.voidlinux.org/current`) через статический XBPS:
+`build/sysroot` наполняется настоящими glibc-пакетами (`base-files`, `dash`,
+...). Это не заготовка на будущее: с M8 ядро MiLin исполняет динамический
+userspace (ld.so + libc.so.6), поэтому бинарные пакеты Void пригодны как
+есть — без пересборки и без собственного зеркала пакетов. Репозиторий и
+список пакетов переопределяются: `XBPS_REPO=... PKGS="..." ./scripts/void-pkgs.sh`.
+
+**EN.** `scripts/void-pkgs.sh` pulls packages **directly from the Void Linux
+repository** (`repo-default.voidlinux.org/current`) using static XBPS:
+`build/sysroot` gets real glibc packages (`base-files`, `dash`, ...). Not a
+prototype: since M8 the MiLin kernel runs dynamic userspace (ld.so +
+libc.so.6), so Void binary packages work as-is — no rebuilds, no package
+mirror needed. Repository and package list are overridable:
+`XBPS_REPO=... PKGS="..." ./scripts/void-pkgs.sh`.
+
+## Обновления ядра: два репозитория / Kernel updates: two repositories
+
+**RU.** Ядро живёт в [MiLin](https://github.com/mel0k1/MiLin), дистрибутив —
+здесь. Правило синхронизации: изменения, затрагивающие ядро, коммитятся в
+MiLin (префиксы `kernel:`, `ipc:`, `init:`, `config:`), а дистрибутив
+подхватывает их осознанным пином — коммит `kernel: sync <sha>` в MiLini
+после зелёного бут-теста. Пин — `conf/milini.conf`, история синсов видна в
+`git log --grep '^kernel: sync'`.
+
+**EN.** The kernel lives in [MiLin](https://github.com/mel0k1/MiLin), the
+distribution lives here. Sync rule: kernel-touching changes are committed to
+MiLin (prefixes `kernel:`, `ipc:`, `init:`, `config:`); the distro picks them
+up as a deliberate pin — a `kernel: sync <sha>` commit in MiLini after a
+green boot test. The pin is `conf/milini.conf`; sync history is visible via
+`git log --grep '^kernel: sync'`.
+
 ## Дорожная карта дистрибутива / Distro roadmap
 
 - [x] воспроизводимая сборка образа из пина ядра
 - [x] бут-гейт в CI (здоровье: IPC, capabilities, отказоустойчивость, glibc)
 - [x] менеджер пакетов: XBPS (Void Linux), репозиторий build/repo
 - [ ] подпись xbps-репозитория (repodata signature)
-- [ ] системная политика сервисов (манифесты вместо таблицы в supervisor)
+- [x] системная политика сервисов (манифесты вместо таблицы в supervisor, M5.2)
+- [x] rootfs из пакетов Void (scripts/void-pkgs.sh)
 - [ ] инсталлятор на диск/образ
 
 ## Лицензия / License
