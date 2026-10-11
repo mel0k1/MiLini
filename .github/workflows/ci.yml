@@ -28,6 +28,9 @@ jobs:
       - name: boot test
         run: scripts/run.sh
 
+      - name: xbps repository
+        run: scripts/mk-xbps.sh
+
       - name: artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -37,4 +40,12 @@ jobs:
             build/bzImage
             build/milini-initramfs.img
             build/boot.log
+          if-no-files-found: ignore
+
+      - name: artifacts (xbps repo)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milini-xbps-repo
+          path: build/repo/
           if-no-files-found: ignore

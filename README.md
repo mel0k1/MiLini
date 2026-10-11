@@ -17,6 +17,7 @@ conf/milini.conf        закреплённый коммит ядра MiLin (pi
 scripts/fetch-milin.sh  клон MiLin на закреплённый коммит
 scripts/build-image.sh  ядро + userspace + оверлей -> образ
 scripts/run.sh          бут-тест в QEMU (гейт здоровья системы)
+scripts/mk-xbps.sh      xbps-репозиторий пакетов (менеджер XBPS, Void Linux)
 rootfs/etc/             identity дистрибутива внутри образа (release, motd)
 ```
 
@@ -24,7 +25,8 @@ rootfs/etc/             identity дистрибутива внутри обра�
 
 ```sh
 ./scripts/build-image.sh     # ядро MiLin + сервисы + оверлей -> build/
-./scripts/run.sh             # QEMU: M8 OK = система жива
+./scripts/run.sh             # QEMU: M9 OK = система жива
+./scripts/mk-xbps.sh         # build/repo/: xbps-пакеты + repodata
 ```
 
 Требования / Requirements: gcc, make, flex, bison, bc, cpio, libelf-dev,
@@ -48,14 +50,33 @@ green boot test, not chasing a moving target.
 - log-сервер `logsrv` — IPC-сервис: seqpacket и асинхронные очереди HelQueue
   в разделяемой памяти (мелкие сообщения inline, крупные до 32КБ через blob-слоты);
 - `uiod` — драйвер PCI в userspace (UIO), `fused` — файловая система (FUSE);
+- kdriver-домен — драйверы «между ядром и userspace»: kthread с собственным
+  pid, размещение (ядро/userspace) — политика, переключается через sysfs;
 - отзыв capabilities при смерти клиента, каскадный перезапуск при смерти шины;
 - динамический glibc-userspace: `/sbin/gclient` работает под ld.so + libc.so.6.
+
+## Пакеты XBPS / XBPS packages
+
+**RU.** Дистрибутив упаковывается менеджером пакетов XBPS (Void Linux):
+`scripts/mk-xbps.sh` собирает `build/repo/` с тремя пакетами —
+`mlin-kernel` (vmlinuz + конфиг), `mlin-userspace` (initramfs) и мета-пакет
+`milini` (зависимость на обоих), плюс repodata от `xbps-rindex`. Статические
+бинарники xbps скачиваются автоматически; на любой системе с XBPS
+репозиторий подключается как `--repository=file://.../build/repo`.
+
+**EN.** The distribution is packaged with XBPS, the package manager of Void
+Linux: `scripts/mk-xbps.sh` builds `build/repo/` with three packages —
+`mlin-kernel` (kernel + config), `mlin-userspace` (initramfs) and the
+`milini` meta package (depends on both), plus `xbps-rindex` repodata.
+Static xbps binaries are downloaded automatically; on any host with XBPS
+the repository attaches as `--repository=file://.../build/repo`.
 
 ## Дорожная карта дистрибутива / Distro roadmap
 
 - [x] воспроизводимая сборка образа из пина ядра
 - [x] бут-гейт в CI (здоровье: IPC, capabilities, отказоустойчивость, glibc)
-- [ ] менеджер пакетов (формат .mlpkg, подпись, репозиторий)
+- [x] менеджер пакетов: XBPS (Void Linux), репозиторий build/repo
+- [ ] подпись xbps-репозитория (repodata signature)
 - [ ] системная политика сервисов (манифесты вместо таблицы в supervisor)
 - [ ] инсталлятор на диск/образ
 
