@@ -1,1 +1,20 @@
-13.0 (dynamic XBPS over the userspace network)
+14.0 (real Void repo over the internet + real hardware boot)
+
+Пакетный менеджер против живого интернета и загрузка на настоящей машине.
+
+M14a — Void-репо напрямую:
+  xbps-install из гостя ходит в https://repo-default.voidlinux.org/current
+  через userspace-сеть (netd + netsh): DNS-over-TCP, TLS 1.2 (openssl из
+  мира Void, CA-бандл Mozilla), подпись индекса — ключ Void из пакета xbps.
+  Bootstrap-мир качается живым индексом репозитория, версии не хардкодятся.
+
+M14b — реальное железо:
+  ядро несёт контракт бут-хранения и консоли: AHCI/SATA, NVMe, virtio-blk,
+  ext4 (mnttest-гейт: монтирование + roundtrip на каждом виде хранения),
+  VGA-консоль, PS/2-клавиатура, EFI stub. Образ: гибридный ISO — BIOS
+  (El Torito) и UEFI (grub + memdisk-конфиг), пишется dd-ом на USB.
+  Полный e2e (вплоть до установки пакета из реального репо) проверен
+  на SeaBIOS и OVMF.
+
+Сборка образа: scripts/build-image.sh -> build/milini-x86_64.iso
+Инструкция по железу: docs/realhw.md
