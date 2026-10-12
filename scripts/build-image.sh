@@ -21,8 +21,8 @@ sh "$MILIN/tools/mkinitramfs.sh"
 # оверлей дистрибутива (identity: /etc/milini-release, /etc/motd)
 cp -r rootfs/. "$MILIN/build/rootfs/"
 
-# гостевой XBPS-стенд: утилиты + локальный репозиторий + раннер теста
-sh scripts/mk-guest.sh
+# с M13 базовый initramfs MiLin уже несёт мир Void (динамический xbps,
+# netsh -> netd) и гейт xbpstest — подписанный репо + сеть включены
 ( cd "$MILIN/build/rootfs" && find . | cpio -o -H newc --quiet | gzip -9 ) \
     > build/milini-initramfs.img
 cp "$MILIN/build/bzImage" build/bzImage

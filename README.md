@@ -111,7 +111,7 @@ green boot test. The pin is `conf/milini.conf`; sync history is visible via
 - [x] воспроизводимая сборка образа из пина ядра
 - [x] бут-гейт в CI (здоровье: IPC, capabilities, отказоустойчивость, glibc)
 - [x] менеджер пакетов: XBPS (Void Linux), репозиторий build/repo
-- [ ] подпись xbps-репозитория (repodata signature)
+- [x] подпись xbps-репозитория (repodata signature, mkrepo.sh)
 - [x] системная политика сервисов (манифесты вместо таблицы в supervisor, M5.2)
 - [x] rootfs из пакетов Void (scripts/void-pkgs.sh)
 - [ ] инсталлятор на диск/образ
