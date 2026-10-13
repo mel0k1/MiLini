@@ -48,10 +48,11 @@ DISCOVER/OFFER/REQUEST/ACK, аренда с T1-renew, DNS-опция 6
 
 ## Известные ограничения
 
-- AP-перечисление на настоящих машинах идёт из ACPI MADT: в ядре
-  drivers/acpi вырезан, поэтому на реальном железе пока поднимается
-  один CPU (в QEMU SMP-гейты идут на legacy-машинах, где MPS несёт
-  все CPU) — ACPI (MADT/_PRT/poweroff) — следующий этап (M17);
+- [M17] ACPI вернулся (drivers/acpi + pnpacpi из v7.2): AP-перечисление
+  на настоящих машинах идёт из MADT — многоядерность больше не зависит
+  от legacy-MPS; PCI INTx маршрутизируется через _PRT, ECAM — из MCFG,
+  poweroff/reboot уходят в ACPI S5 (гейты QEMU: q35 -smp 4 — 4 CPUs,
+  "reboot: Power down", "reboot: Restarting system");
 - x2APIC выключен зависимостью IRQ_REMAP (drivers/iommu вырезан);
 - PREEMPT_NONE — планировщик микроядерного мира пока простой;
 - NIC: WiFi отсутствует (userspace-стек netd — только ethernet);
