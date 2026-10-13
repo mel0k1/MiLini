@@ -1,13 +1,14 @@
-# MiLini на реальном железе (M14)
+# MiLini на реальном железе (M14–M16)
 
 ## Что поддержано
 
 | Подсистема | Драйвер/путь | Примечание |
 |---|---|---|
 | Хранение | AHCI/SATA (drivers/ata), NVMe (drivers/nvme), virtio-blk | ext4 — постоянный root, гейт mnttest на каждом виде |
-| Сеть | Intel e1000 (8254x) через UIO в userspace (netd) | r8169 и прочие — следующий этап; в QEMU — e1000 |
+| Сеть | e1000 (8254x), e1000e (82574L), r8169 (RTL8168/8111) через UIO в userspace (netd); DHCP over UDP (RFC 2131) | r8169 валидирован по регистрам ванильного драйвера 7.2.9 — QEMU 10 rtl8169 не эмулирует, ждёт реального железа; в QEMU — e1000/e1000e |
 | Консоль | VGA text (CONFIG_VGA_CONSOLE) + serial (ttyS0) | GRUB-конфиг поднимает обе: console=tty0 console=ttyS0,115200 |
-| Ввод | PS/2 клавиатура (i8042 + atkbd) | USB-клавиатуры — следующий этап (xHCI+HID) |
+| Ввод | PS/2 (i8042 + atkbd) и USB-клавиатуры (xHCI/EHCI/UHCI + usbhid + hid-generic) | гейты realhw: `input: QEMU QEMU USB Keyboard` |
+| CPU | SMP: до NR_CPUS=8, IO-APIC/LAPIC, HIGH_RES_TIMERS (oneshot) | гейты на -smp 4: `Brought up 1 node, 4 CPUs` (M16) |
 | Загрузка | GRUB: BIOS (El Torito) и UEFI (EFI stub ядра) | гибридный ISO, dd на USB или запись на CD |
 
 ## Запись образа
@@ -33,22 +34,29 @@ qemu-system-x86_64 -m 512M -nographic -no-reboot \
 
 Гейты живой системы: `M12 OK` (userspace TCP/IP), `M14 OK`
 (установка dash из `https://repo-default.voidlinux.org/current` и запуск),
-`M14HW OK` (ext4 roundtrip на найденном диске).
+`M14HW OK` (ext4 roundtrip на найденном диске), `DHCP OK` (адресация
+по DHCP, M15), `SMP OK (4 CPUs)` (M16, гейты на legacy-машинах QEMU).
 
 ## Сеть на реальной машине
 
-netd поднимает e1000-класс NIC через UIO: статический адрес slirp-схемы
-(10.0.2.15) в VM; для реальной сети адресация задаётся в
-`userspace/netd.c` (NET_MY_IP/NET_GW_IP/NET_MASK) до появления DHCP
-в netd (UDP — следующий этап, вместе с ним DNS перестанет требовать
-resolv.conf). DNS в госте — `/etc/resolv.conf` (TCP:53).
+netd поднимает NIC через UIO (probe по PCI vendor/device: e1000 /
+e1000e / r8169) и получает адресацию по DHCP (RFC 2131 over UDP):
+DISCOVER/OFFER/REQUEST/ACK, аренда с T1-renew, DNS-опция 6
+перезаписывает /etc/resolv.conf. Нет сервера — fallback slirp-статики
+через 24с, DHCP продолжает пробовать в фоне. DNS в госте — TCP:53
+через netd.
 
 ## Известные ограничения
 
-- SMP выключен (одно ядро), PREEMPT_NONE — планировщик микроядерного мира
-  пока простой;
-- NIC: только e1000-класс (QEMU/старые Intel); r8169/e1000e — в работе;
-- USB-клавиатуры не работают (нужен xHCI+HID — большой контракт);
-- постоянный root: пока live-RAM система; монтирование и запись на ext4
-  работает (`M14HW OK`), автоматический switch_root на реальный диск —
-  следующий этап.
+- AP-перечисление на настоящих машинах идёт из ACPI MADT: в ядре
+  drivers/acpi вырезан, поэтому на реальном железе пока поднимается
+  один CPU (в QEMU SMP-гейты идут на legacy-машинах, где MPS несёт
+  все CPU) — ACPI (MADT/_PRT/poweroff) — следующий этап (M17);
+- x2APIC выключен зависимостью IRQ_REMAP (drivers/iommu вырезан);
+- PREEMPT_NONE — планировщик микроядерного мира пока простой;
+- NIC: WiFi отсутствует (userspace-стек netd — только ethernet);
+- ноутбуки: тачпады (psmouse) и eMMC/SDHCI пока не возвращены;
+- UEFI Class 3 машины (без CSM): VGA text-режима нет — картинка
+  появится с fbcon + EFI framebuffer (следующий этап);
+- инсталлятор: образ живой, switch_root сеет мир на пустой ext4
+  (root= параметр), разметка диска и установка GRUB на диск — вручную.
