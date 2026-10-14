@@ -1,4 +1,4 @@
-# MiLini на реальном железе (M14–M19)
+# MiLini на реальном железе (M14–M20)
 
 ## Что поддержано
 
@@ -46,11 +46,11 @@ DISCOVER/OFFER/REQUEST/ACK, аренда с T1-renew, DNS-опция 6
 через 24с, DHCP продолжает пробовать в фоне. DNS в госте — TCP:53
 через netd.
 
-## Установка MiLini на диск (M19)
+## Установка MiLini на диск (M20)
 
 Начиная с M19 MiLini — устанавливаемая ОС: живая система копирует себя
 на диск и ставит загрузчик, после чего машина грузится с диска без
-CD/USB-носителя.
+CD/USB-носителя. С M20 установка партиционирована и работает и на UEFI.
 
 Инсталлятор — /sbin/minstall в живой системе. Два способа запуска:
 
@@ -60,22 +60,29 @@ CD/USB-носителя.
 - вручную: войти root'ом в живой системе и выполнить
   `/sbin/minstall /dev/sda`.
 
-Инсталлятор делает: mkfs.ext4 на диск целиком (syslinux 6.03 не читает
-64bit/metadata_csum — они выключены), копию мира + /sbin/init, /boot
-(vmlinuz + мини-initramfs 12 КиБ — только /init, мир живёт на диске),
-extlinux.conf (root= + rw + консольные параметры установочной сессии:
-на машине с экраном останется tty0/fbcon, на серийной консоли — ttyS0),
-extlinux --install (boot-сектор пишется через ФС в зарезервированную
-область ext4). Успех: `MINSTALL OK`.
+Раскладка диска — GPT: p1 = ESP 64M (FAT16, тип C12A7328), p2 = корень
+ext4 (Linux root x86-64, discoverable GUID 4F68BCE3, legacy-bootable бит
+для gptmbr). Инсталлятор делает: GPT-запись (защитный MBR + заголовок +
+записи + запасные копии, CRC32 собственный), BLKRRPART-рескан — ноды
+/dev/sda1 и /dev/sda2 появляются в devtmpfs без ребута, mkfs.ext4 на
+sda2 (64bit/metadata_csum выключены — syslinux 6.03 их не читает),
+копию мира + /sbin/init, /boot (vmlinuz + мини-initramfs 12 КиБ —
+только /init, мир живёт на диске), extlinux.conf (root=/dev/sda2 + rw +
+консольные параметры установочной сессии), extlinux --install,
+gptmbr.bin на LBA0, ESP — FAT16 c /EFI/BOOT/BOOTX64.EFI (FAT16-писатель
+встроен в minstall: все имена 8.3, boot-код не нужен — прошивка читает
+FAT своим драйвером). Успех: `MINSTALL OK`.
 
-Целевой диск — без таблицы партиций (ext4 на всём диске): живой
-BLKRRPART-рескан в ядре пока отдаёт устаревший кэш attach-скана,
-партиционирование — кандидат в M20.
+Загрузка установленной системы:
 
-Загрузка установленной системы (BIOS-машины): SeaBIOS -> extlinux ->
-ядро + мини-initramfs -> switch_root на диск -> getty на консоли.
-UEFI-машины пока грузят живой образ (Class 3 поддержан с M18),
-дисковый UEFI-бут (GRUB EFI/EFISTUB) — M20.
+- BIOS: SeaBIOS -> gptmbr -> extlinux (sda2) -> ядро + мини-initramfs ->
+  switch_root на диск -> getty на консоли;
+- UEFI: прошивка читает ESP -> BOOTX64.EFI — само ядро с EFI stub
+  (GRUB не нужен, fallback-путь без efibootmgr). Без LoadOptions ядро
+  берёт cmdline из CONFIG_CMDLINE: root=PARTUUID корня (канонический
+  GUID 4d494c49-4d20-4d32-8000-000000000001 зашит и в GPT, и в ядро),
+  rootwait, memmap-резерв /dev/mlpinned, консоли — прямой mount ext4
+  без initramfs, /sbin/init запускается сразу.
 
 ## Вход в систему (M19)
 
@@ -112,7 +119,7 @@ demo-oneshot'ов (живёт до poweroff/reboot), live-сессия заве�
 - PREEMPT_NONE — планировщик микроядерного мира пока простой;
 - NIC: WiFi отсутствует (userspace-стек netd — только ethernet);
 - ноутбуки: eMMC/SDHCI пока не возвращены (тачпады psmouse закрыты в M18);
-- [M19] установка на диск: цель без таблицы партиций (BLKRRPART-рескан
-  отдаёт устаревший кэш — партиции в M20), загрузчик extlinux только
-  для BIOS (UEFI-бут установленного диска — GRUB EFI/EFISTUB в M20),
-  смена пароля в госте — passwd в M20, utmp/wtmp не ведутся.
+- [M20] установка на диск: GPT (ESP + корень), BLKRRPART-рескан без
+  ребута, BIOS (gptmbr/extlinux) и UEFI (EFISTUB BOOTX64.EFI) пути;
+  смена пароля в госте — passwd в работе, utmp/wtmp не ведутся, PARTUUID
+  пока один канонический на все установки.
