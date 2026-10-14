@@ -96,8 +96,11 @@ FAT своим драйвером). Успех: `MINSTALL OK`.
 Пароли — sha512-crypt в /etc/shadow (проверка — собственная реализация
 userspace/crypt.h, верифицирована против openssl), эхо при вводе
 выключено (TCSETS). Хэши генерятся при сборке образа; смена пароля в
-госте (passwd) — M20. Сессия: login выполняет setgid/setuid, chdir в
-домашний каталог и /bin/sh; выход из шелла возвращает подсказку
+госте — /sbin/passwd (M20): root меняет любой аккаунт без текущего
+пароля, остальные — свой, подтверждая текущий; соль — 16 символов из
+/dev/urandom, запись атомарная (shadow.tmp -> fsync -> fchmod 0600 ->
+rename), бинарь setuid root. Сессия: login выполняет setgid/setuid,
+chdir в домашний каталог и /bin/sh; выход из шелла возвращает подсказку
 входа. Служебные команды: /sbin/poweroff (ACPI S5) и /sbin/reboot.
 
 Супервизор различает live-сессию и установленную систему по маркеру
@@ -120,6 +123,6 @@ demo-oneshot'ов (живёт до poweroff/reboot), live-сессия заве�
 - NIC: WiFi отсутствует (userspace-стек netd — только ethernet);
 - ноутбуки: eMMC/SDHCI пока не возвращены (тачпады psmouse закрыты в M18);
 - [M20] установка на диск: GPT (ESP + корень), BLKRRPART-рескан без
-  ребута, BIOS (gptmbr/extlinux) и UEFI (EFISTUB BOOTX64.EFI) пути;
-  смена пароля в госте — passwd в работе, utmp/wtmp не ведутся, PARTUUID
-  пока один канонический на все установки.
+  ребута, BIOS (gptmbr/extlinux) и UEFI (EFISTUB BOOTX64.EFI) пути,
+  смена пароля в госте — /sbin/passwd (setuid, атомарный shadow);
+  utmp/wtmp не ведутся, PARTUUID пока один канонический на все установки.
