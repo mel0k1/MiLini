@@ -64,14 +64,16 @@ CD/USB-носителя. С M20 установка партиционирова�
 ext4 (Linux root x86-64, discoverable GUID 4F68BCE3, legacy-bootable бит
 для gptmbr). Инсталлятор делает: GPT-запись (защитный MBR + заголовок +
 записи + запасные копии, CRC32 собственный), BLKRRPART-рескан — ноды
-/dev/sda1 и /dev/sda2 появляются в devtmpfs без ребута, mkfs.ext4 на
+/dev/sda1 и /dev/sda2 появляются в devtmpfs без ребута, mkfs.ext4 128M на
 sda2 (64bit/metadata_csum выключены — syslinux 6.03 их не читает),
 копию мира + /sbin/init, /boot (vmlinuz + мини-initramfs 12 КиБ —
 только /init, мир живёт на диске), extlinux.conf (root=/dev/sda2 + rw +
 консольные параметры установочной сессии), extlinux --install,
 gptmbr.bin на LBA0, ESP — FAT16 c /EFI/BOOT/BOOTX64.EFI (FAT16-писатель
 встроен в minstall: все имена 8.3, boot-код не нужен — прошивка читает
-FAT своим драйвером). Успех: `MINSTALL OK`.
+FAT своим драйвером). После копии мира и umount — resize2fs до края
+партиции: быстрый mkfs малого fs + resize вместо полного mkfs на больших
+дисках. Успех: `MINSTALL OK` + `RESIZE OK`.
 
 Загрузка установленной системы:
 
@@ -99,9 +101,12 @@ userspace/crypt.h, верифицирована против openssl), эхо п
 госте — /sbin/passwd (M20): root меняет любой аккаунт без текущего
 пароля, остальные — свой, подтверждая текущий; соль — 16 символов из
 /dev/urandom, запись атомарная (shadow.tmp -> fsync -> fchmod 0600 ->
-rename), бинарь setuid root. Сессия: login выполняет setgid/setuid,
-chdir в домашний каталог и /bin/sh; выход из шелла возвращает подсказку
-входа. Служебные команды: /sbin/poweroff (ACPI S5) и /sbin/reboot.
+rename), бинарь setuid root. Учёт сессий (M21): login пишет USER_PROCESS
+в /var/run/utmp (слоты) и /var/log/wtmp (история), getty после выхода из
+шелла — DEAD_PROCESS; /sbin/last печатает историю входов. Сессия: login
+выполняет setgid/setuid, chdir в домашний каталог и /bin/sh; выход из
+шелла возвращает подсказку входа. Служебные команды: /sbin/poweroff
+(ACPI S5, с sync) и /sbin/reboot.
 
 Супервизор различает live-сессию и установленную систему по маркеру
 /etc/milin/.installed: установленная система не завершается после
@@ -125,4 +130,6 @@ demo-oneshot'ов (живёт до poweroff/reboot), live-сессия заве�
 - [M20] установка на диск: GPT (ESP + корень), BLKRRPART-рескан без
   ребута, BIOS (gptmbr/extlinux) и UEFI (EFISTUB BOOTX64.EFI) пути,
   смена пароля в госте — /sbin/passwd (setuid, атомарный shadow);
-  utmp/wtmp не ведутся, PARTUUID пока один канонический на все установки.
+- [M21] utmp/wtmp ведутся (login/getty, /sbin/last), ext4 растёт
+  resize2fs до края партиции; PARTUUID пока один канонический на все
+  установки.
