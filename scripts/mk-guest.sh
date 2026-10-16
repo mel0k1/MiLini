@@ -1,10 +1,5 @@
 #!/bin/sh
 # гостевой XBPS-стенд (тест "установи через XBPS и запусти"):
-#   * статические утилиты xbps (musl) -> build/rootfs/usr/bin
-#   * пакеты hello/gpuinfo (бинарники MiLin-userspace из src/) -> build/repo
-#   * xbps-rindex -a -> repodata; всё это в initramfs гостя (/repo, /usr/bin)
-#   * раннер /sbin/xbpstest (src/xbpstest.c) + манифест rootfs/etc/milin
-# вызывается из scripts/build-image.sh ПОСЛЕ наложения оверлея rootfs/
 set -e
 cd "$(dirname "$0")/.."
 MILIN="$(pwd)/build/MiLin"
@@ -13,7 +8,6 @@ REPO="$(pwd)/build/repo"
 XBPS_BIN="$(pwd)/tools/xbps/usr/bin"
 ARCH=x86_64
 
-# --- xbps-инструментарий (тот же, что в mk-xbps.sh) ---
 if [ ! -x "$XBPS_BIN/xbps-install" ]; then
     echo "mk-guest: качаю статический xbps"
     mkdir -p tools
@@ -27,7 +21,6 @@ XCREATE="$XBPS_BIN/xbps-create"
 XINDEX="$XBPS_BIN/xbps-rindex"
 [ -x "$XCREATE" ] || { echo "mk-guest: xbps-create не найден"; exit 1; }
 
-# --- бинарники пакетов: userspace MiLin, тот же ABI, что у ядра гостя ---
 rm -rf build/pkgsrc
 mkdir -p build/pkgsrc/hello/usr/bin build/pkgsrc/gpuinfo/usr/bin
 gcc -static -nostdlib -ffreestanding -O2 -I"$MILIN/userspace" \
@@ -35,11 +28,9 @@ gcc -static -nostdlib -ffreestanding -O2 -I"$MILIN/userspace" \
 gcc -static -nostdlib -ffreestanding -O2 -I"$MILIN/userspace" \
     -o build/pkgsrc/gpuinfo/usr/bin/gpuinfo src/gpuinfo.c
 
-# --- раннер гостевого теста (в initramfs, не в пакете) ---
 gcc -static -nostdlib -ffreestanding -O2 -I"$MILIN/userspace" \
     -o "$RFS/sbin/xbpstest" src/xbpstest.c
 
-# --- локальный репозиторий: .xbps + repodata ---
 rm -rf "$REPO"
 mkdir -p "$REPO"
 ( cd build/pkgsrc/hello && "$XCREATE" -A "$ARCH" -n "hello-1.0_1" \
@@ -53,7 +44,6 @@ mv build/pkgsrc/gpuinfo/gpuinfo-1.0_1.x86_64.xbps "$REPO/"
 "$XINDEX" -a "$REPO"/*.xbps > /dev/null
 [ -f "$REPO"/x86_64-repodata ] || { echo "mk-guest: repodata не создан"; exit 1; }
 
-# --- в корень гостя: утилиты + репозиторий ---
 mkdir -p "$RFS/usr/bin" "$RFS/repo"
 cp "$XBPS_BIN/xbps-install" "$XBPS_BIN/xbps-query" "$RFS/usr/bin/"
 cp "$REPO"/*.xbps "$REPO"/x86_64-repodata "$RFS/repo/"

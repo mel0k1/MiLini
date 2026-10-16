@@ -6,7 +6,6 @@ mkdir -p build
 [ -f build/bzImage ] || scripts/build-image.sh
 BIN="qemu-system-x86_64"
 EXTRA=""
-# offline-тулчейн: рядом с репо (../root) или внутри (root/)
 for R in root ../root; do
     if [ -x "$R/usr/bin/qemu-system-x86_64" ]; then
         export LD_LIBRARY_PATH="$PWD/$R/usr/lib/x86_64-linux-gnu:$PWD/$R/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"

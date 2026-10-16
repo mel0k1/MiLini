@@ -1,14 +1,9 @@
 #!/bin/sh
 # скачка пакетов ПРЯМО из репозитория Void Linux через XBPS.
-# build/sysroot наполняется настоящими glibc-пакетами Void — это будущий
-# корень дистрибутива: ядро MiLin с M8 исполняет динамический userspace,
-# значит пакеты Void пригодны как есть, без пересборки.
-# репозиторий/список настраиваются переменными XBPS_REPO и PKGS.
 set -e
 cd "$(dirname "$0")/.."
 XBPS_BIN="$(pwd)/tools/xbps/usr/bin"
 if [ ! -x "$XBPS_BIN/xbps-install" ]; then
-    # тот же статический тулчейн, что в mk-xbps.sh
     echo "void-pkgs: качаю статический xbps"
     mkdir -p tools
     curl -sL --max-time 120 -o /tmp/xbps-static.tar.xz \
@@ -25,7 +20,6 @@ ROOT="$(pwd)/build/sysroot"
 
 mkdir -p "$ROOT/etc/xbps.d" "$ROOT/var/db/xbps"
 echo "void-pkgs: репозиторий $XBPS_REPO -> build/sysroot"
-# ключ репозитория импортируем неинтерактивно (stdin не всегда tty)
 printf 'y\n' | XBPS_ARCH=x86_64 "$XBPS_BIN/xbps-install" -S -y \
     -R "$XBPS_REPO" -C "$ROOT/etc/xbps.d" -r "$ROOT" $PKGS
 

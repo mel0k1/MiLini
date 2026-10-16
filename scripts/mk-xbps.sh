@@ -1,12 +1,5 @@
 #!/bin/sh
 # упаковка MiLini в xbps-репозиторий (менеджер пакетов Void Linux).
-# пакеты:
-#   mlin-kernel-<ver>    /boot/vmlinuz-milin + /boot/milin.config
-#   mlin-userspace-<ver> /usr/share/milini/initramfs.img (rootfs + overlay)
-#   milini-<ver>         мета: зависит от обоих, /usr/share/doc/milini
-# репозиторий: build/repo (xbps-rindex -a -> *-repodata)
-# xbps-бинарники: ./tools/xbps/usr/bin (статические, musl) — при
-# отсутствии скачиваются с repo-default.voidlinux.org/static/
 set -e
 cd "$(dirname "$0")/.."
 . ./conf/milini.conf
@@ -17,7 +10,6 @@ XBPS_BIN="$(pwd)/tools/xbps/usr/bin"
 REPO="$(pwd)/build/repo"
 TMP="$(pwd)/build/pkg"
 
-# --- xbps-инструментарий ---
 if [ ! -x "$XBPS_BIN/xbps-create" ]; then
     echo "mk-xbps: качаю статический xbps"
     mkdir -p tools
@@ -37,7 +29,6 @@ XINDEX="$XBPS_BIN/xbps-rindex"
 rm -rf "$TMP" "$REPO"
 mkdir -p "$TMP/k/boot" "$TMP/u/usr/share/milini" "$TMP/m/usr/share/doc/milini" "$REPO"
 
-# --- mlin-kernel ---
 cp build/bzImage "$TMP/k/boot/vmlinuz-milin"
 cp build/MiLin/configs/milin.config "$TMP/k/boot/milin.config"
 (cd "$REPO" && "$XCREATE" -A "$ARCH" -n "mlin-kernel-$REV" -s "MiLin microkernel image" \
@@ -45,7 +36,6 @@ cp build/MiLin/configs/milin.config "$TMP/k/boot/milin.config"
     -B "MiLin $MILIN_REF" \
     "$TMP/k") > /dev/null
 
-# --- mlin-userspace ---
 cp build/milini-initramfs.img "$TMP/u/usr/share/milini/initramfs.img"
 cp build/boot.log "$TMP/u/usr/share/milini/boot.log" 2>/dev/null || true
 (cd "$REPO" && "$XCREATE" -A "$ARCH" -n "mlin-userspace-$REV" \
@@ -54,7 +44,6 @@ cp build/boot.log "$TMP/u/usr/share/milini/boot.log" 2>/dev/null || true
     -B "MiLin $MILIN_REF" \
     "$TMP/u") > /dev/null
 
-# --- milini (мета) ---
 printf 'MiLin %s\n' "$MILIN_REF" > "$TMP/m/usr/share/doc/milini/RELEASE"
 cat > "$TMP/m/usr/share/doc/milini/README" <<'EOF'
 MiLini — дистрибутив микроядра MiLin.
@@ -68,8 +57,6 @@ EOF
     -B "MiLin $MILIN_REF" \
     "$TMP/m") > /dev/null
 
-# --- репозиторий ---
-# репо-каталог xbps-rindex выводит из каталога пакетов; repodata ложится рядом
 "$XINDEX" -a "$REPO"/mlin-kernel-$REV.$ARCH.xbps \
     "$REPO"/mlin-userspace-$REV.$ARCH.xbps \
     "$REPO"/milini-$REV.$ARCH.xbps
