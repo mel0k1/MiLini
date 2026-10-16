@@ -77,14 +77,20 @@ FAT своим драйвером). После копии мира и umount —
 
 Загрузка установленной системы:
 
-- BIOS: SeaBIOS -> gptmbr -> extlinux (sda2) -> ядро + мини-initramfs ->
+- BIOS: SeaBIOS -> gptmbr -> extlinux (sda2, APPEND root=PARTUUID) ->
+  ядро + мини-initramfs -> резолвер PARTUUID (GPT-скан /dev) ->
   switch_root на диск -> getty на консоли;
-- UEFI: прошивка читает ESP -> BOOTX64.EFI — само ядро с EFI stub
-  (GRUB не нужен, fallback-путь без efibootmgr). Без LoadOptions ядро
-  берёт cmdline из CONFIG_CMDLINE: root=PARTUUID корня (канонический
-  GUID 4d494c49-4d20-4d32-8000-000000000001 зашит и в GPT, и в ядро),
-  rootwait, memmap-резерв /dev/mlpinned, консоли — прямой mount ext4
-  без initramfs, /sbin/init запускается сразу.
+- UEFI: прошивка читает ESP -> BOOTX64.EFI — наш EFI boot manager
+  (MiLin M22, userspace/efiboot: PE32+ без .reloc, туннели
+  SysV->Win64). Он читает с ESP CMDLINE (ascii-cmdline с
+  root=PARTUUID ЭТОЙ установки) и стартует VMLINUZ.EFI с LoadOptions —
+  LoadOptions перекрывают CONFIG_CMDLINE, ядро не пересобирается;
+  memmap-резерв /dev/mlpinned и консоли едут из CONFIG_CMDLINE, прямой
+  mount ext4 без initramfs, /sbin/init запускается сразу;
+- GUID'ы установки (disk/ESP/root) уникальны для каждой машины —
+  urandom v4 при minstall, канонического GUID больше нет нигде.
+  Командные буферы ядра на ESP: /EFI/BOOT/{BOOTX64.EFI,VMLINUZ.EFI,
+  CMDLINE}.
 
 ## Вход в систему (M19)
 
@@ -128,8 +134,12 @@ demo-oneshot'ов (живёт до poweroff/reboot), live-сессия заве�
 - NIC: WiFi отсутствует (userspace-стек netd — только ethernet);
 - ноутбуки: eMMC/SDHCI пока не возвращены (тачпады psmouse закрыты в M18);
 - [M20] установка на диск: GPT (ESP + корень), BLKRRPART-рескан без
-  ребута, BIOS (gptmbr/extlinux) и UEFI (EFISTUB BOOTX64.EFI) пути,
-  смена пароля в госте — /sbin/passwd (setuid, атомарный shadow);
+  ребута, BIOS (gptmbr/extlinux) и UEFI пути, смена пароля в госте —
+  /sbin/passwd (setuid, атомарный shadow);
 - [M21] utmp/wtmp ведутся (login/getty, /sbin/last), ext4 растёт
-  resize2fs до края партиции; PARTUUID пока один канонический на все
-  установки.
+  resize2fs до края партиции;
+- [M22] GUID'ы установки уникальны (urandom v4), root=PARTUUID и на
+  BIOS (extlinux + резолвер в мини-initramfs), и на UEFI (свой EFI
+  boot manager BOOTX64.EFI: CMDLINE с ESP + VMLINUZ.EFI под
+  LoadOptions); GPU-фасад e2e (/sbin/gputest) и bulk-путь IPC
+  (ML_TR_BULK) в установленной системе.
