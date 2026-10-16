@@ -1,23 +1,10 @@
-// src/xbpstest.c MiLini: гостевой тест пакетного менеджера.
-//
-// Загрузка -> tmpfs-цель /target (/mnt занят FUSE-демо; ramfs initramfs
-// отдаёт statfs 0 байт, xbps на этом прерывает транзакцию) -> установка из локального
-// репозитория /repo настоящим xbps-install (статический, musl) ->
-// запуск установленных бинарников: hello (пакет самодостаточен) и
-// gpuinfo (клиент mlkd-фасада amdgpu, M11). Это тот же sysroot-паттерн,
-// что у void-pkgs.sh на хосте: -r <target>. type=service в манифесте:
-// отработав, паркуется — супервизор перезапускает только умерших, а
-// вердикт системы остаётся за oneshot-клиентом (order 90). Ретраи
-// gpuinfo: супервизор во время своего m11-демо мигает placement
-// фасада, установка успевает закончиться позже — ждём стабилизации.
+// xbpstest: гостевой тест пакетного менеджера против живого репо.
 
 #include "milin.h"
 
 #define WNOHANG 1
 #define MAXRUN_MS 120000
 
-// fork + execve + wait с потолком времени (WNOHANG-цикл). Возврат: код
-// выхода ребёнка, -код сигнала, или -1000 по таймауту.
 static long run_wait(char *argv[], char *envp[]) {
     int pid = (int)sys3(SYS_fork, 0, 0, 0);
     if (pid == 0) {
@@ -49,7 +36,6 @@ static void step(const char *name) {
 }
 
 static int install_pkgs(void) {
-    // цель установки: tmpfs с настоящим statfs (см. шапку); /mnt занят FUSE
     sys3(SYS_mkdir, (long)"/target", 0755, 0);
     if (sys5(SYS_mount, (long)"tmpfs", (long)"/target", (long)"tmpfs", 0, 0) != 0) {
         step("mount tmpfs /target");
@@ -102,8 +88,6 @@ void milin_main(void) {
 
     if (install_pkgs()) goto fail;
 
-    // файлы легли в целевой корень: метаданные в /target/var/db/xbps,
-    // бинарники в /target/usr/bin
     long fd = sys3(SYS_open, (long)"/target/usr/bin/hello", 0 /*O_RDONLY*/, 0);
     if (fd < 0) { step("/target/usr/bin/hello"); P("не установлен: FAIL\n"); goto fail; }
     sys3(SYS_close, fd, 0, 0);
@@ -113,7 +97,6 @@ void milin_main(void) {
     P("xbpstest: pkgdb /target/var/db/xbps + /target/usr/bin/{hello,gpuinfo} на месте: OK\n");
 
     if (run_installed("/target/usr/bin/hello", "hello", 0)) goto fail;
-    // gpuinfo ходит в фасад домена: ретраи на время мигания placement
     if (run_installed("/target/usr/bin/gpuinfo", "gpuinfo", 10)) goto fail;
 
     P("MILINI XBPS OK: установка через XBPS + запуск установленных бинарников\n");

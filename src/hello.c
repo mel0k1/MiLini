@@ -1,5 +1,5 @@
-// src/hello.c MiLini: содержимое пакета hello — проверка, что установленное
-// XBPS'ом реально исполняется ядром MiLin. Raw syscalls, без libc.
+// hello: проверка, что пакет, установленный XBPS'ом, реально исполняется ядром MiLin.
+
 #include "milin.h"
 
 void milin_main(void) {

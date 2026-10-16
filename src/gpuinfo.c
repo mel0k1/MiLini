@@ -1,6 +1,5 @@
-// src/gpuinfo.c MiLini: содержимое пакета gpuinfo — клиент mlkd-фасада
-// amdgpu (M11). Открывает /dev/amdgpu (placement=kernel: запросный цикл
-// в kthread домена), шлёт mlgpu INFO и печатает ответ.
+// gpuinfo: клиент mlkd-фасада amdgpu — mlgpu INFO на /dev/amdgpu.
+
 #include "milin.h"
 #include "mlgpu.h"
 
