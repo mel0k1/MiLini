@@ -7,6 +7,7 @@
 | Хранение | AHCI/SATA (drivers/ata), NVMe (drivers/nvme), virtio-blk, usb-storage (USB-флешки поверх SCSI sd) | ext4 — постоянный root, гейт mnttest на каждом виде; usb-storage: xHCI -> sda привязан (M18) |
 | Сеть | e1000 (8254x), e1000e (82574L), r8169 (RTL8168/8111) через UIO в userspace (netd); DHCP over UDP (RFC 2131) | r8169 валидирован по регистрам ванильного драйвера 7.2.9 — QEMU 10 rtl8169 не эмулирует, ждёт реального железа; в QEMU — e1000/e1000e |
 | Консоль | fbcon + EFI framebuffer (simplefb/efifb), VGA text (BIOS), serial (ttyS0) | UEFI Class 3: screen_info от EFI stub -> sysfb -> simplefb, fbcon на tty0 (M18); BIOS-машины остаются на VGA text; GRUB-конфиг: console=tty0 console=ttyS0,115200 |
+| Wi-Fi | ath9k (Atheros), iwlwifi (Intel 7260/7265/8000/9000/AX200/AX201/AX210), rtw88 (Realtek 8723DE/8821CE/8822BE/8822CE) + cfg80211/mac80211 в ядре | userspace: wpa_supplicant (Void-пакет, WPA2-PSK) + udhcpc + dnsmasq; e2e-гейт в QEMU — пара mac80211_hwsim: assoc + лиз по воздуху (M25) |
 | Ввод | PS/2 (i8042 + atkbd), psmouse (мыши/тачпады AUX) и USB-клавиатуры (xHCI/EHCI/UHCI + usbhid + hid-generic) | гейты realhw: `input: QEMU QEMU USB Keyboard`, `ImExPS/2` на AUX (M18) |
 | CPU | SMP: до NR_CPUS=8, IO-APIC/LAPIC, HIGH_RES_TIMERS (oneshot) | гейты на -smp 4: `Brought up 1 node, 4 CPUs` (M16) |
 | Загрузка | GRUB: BIOS (El Torito) и UEFI (EFI stub ядра) | гибридный ISO, dd на USB или запись на CD |
